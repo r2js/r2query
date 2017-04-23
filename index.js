@@ -15,14 +15,14 @@ const run = (type, query, model) => (
     let { limit = 10 } = parsed;
 
     // set maximum limit
-    if (['all', 'allCount'].includes(type) && limit > 1000) {
+    if (['all', 'allTotal'].includes(type) && limit > 1000) {
       limit = 1000;
     }
 
     // query type
     switch (type) {
       case 'all':
-      case 'allCount':
+      case 'allTotal':
         Model = Model.find(filter);
         break;
 
@@ -38,7 +38,7 @@ const run = (type, query, model) => (
         return reject(notSupported);
     }
 
-    if (['all', 'allCount', 'one'].includes(type)) {
+    if (['all', 'allTotal', 'one'].includes(type)) {
       if (sort) Model.sort(sort);
       if (skip) Model.skip(skip);
       if (limit) Model.limit(limit);
@@ -49,7 +49,7 @@ const run = (type, query, model) => (
       return resolve(Model.exec());
     }
 
-    if (['allCount'].includes(type)) {
+    if (['allTotal'].includes(type)) {
       const a = {
         rows: cb => Model.exec(cb),
         total: cb => Model.count(filter, cb),
@@ -69,11 +69,14 @@ module.exports = function Query() {
   return {
     parse,
     plugin(schema) {
-      ['all', 'allCount', 'one', 'total'].map(type => (
+      Object.assign(schema, { queryTypes: [] });
+      ['all', 'allTotal', 'one', 'total'].map((type) => {
+        schema.queryTypes.push(type);
         schema.statics[type] = function (query) { // eslint-disable-line
           return run(type, query, this);
-        }
-      ));
+        };
+        return type;
+      });
     },
   };
 };

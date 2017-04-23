@@ -46,8 +46,8 @@ describe('r2query', () => {
         .catch(done);
     });
 
-    it('should run query, allCount', (done) => {
-      Model.allCount()
+    it('should run query, allTotal', (done) => {
+      Model.allTotal()
         .then((data) => {
           expect(data.rows.length).to.equal(5);
           expect(data.total).to.equal(5);
