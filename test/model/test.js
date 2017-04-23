@@ -5,13 +5,13 @@ module.exports = (app) => {
   const ObjectId = mongoose.Schema.Types.ObjectId;
   const { Schema } = mongoose;
 
-  const votesSchema = Schema({
+  const votesSchema = new Schema({
     _id: false,
     user: { type: ObjectId, ref: 'users' },
     type: { type: String, enum: ['p', 'n'] },
   });
 
-  const schema = Schema({
+  const schema = new Schema({
     slug: { type: String },
     name: { type: String, required: true },
     description: { type: String, allowHtml: true },
