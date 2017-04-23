@@ -1,7 +1,7 @@
 <h1 align="center">r2query</h1>
 
 <div align="center">
-  <strong></strong>
+  <strong>r2query is a mongoose plugin that converts api query parameters to mongodb queries.</strong>
 </div>
 
 <br />
