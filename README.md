@@ -43,6 +43,10 @@
   <a href="https://codeclimate.com/github/r2js/r2query" target="_blank">
     <img src="https://img.shields.io/codeclimate/coverage/github/r2js/r2query.svg" alt="Codeclimate Coverage" />
   </a>
+  <!-- Codacy -->
+  <a href="https://codacy.com" target="_blank">
+    <img src="https://img.shields.io/codacy/grade/0053539103e7422e8f040329a5b154a9.svg" alt="Codacy" />
+  </a>
   <!-- Github Stars -->
   <a href="https://github.com/r2js/r2query" target="_blank">
     <img src="https://img.shields.io/github/stars/r2js/r2query.svg?label=%E2%98%85" alt="Github Stars" />
