@@ -1,6 +1,5 @@
 module.exports = (app) => {
   const mongoose = app.service('Mongoose');
-  const inspector = app.service('Inspector');
   const query = app.service('Query');
   const ObjectId = mongoose.Schema.Types.ObjectId;
   const { Schema } = mongoose;
@@ -42,6 +41,5 @@ module.exports = (app) => {
 
   schema.plugin(query.plugin);
   const model = mongoose.model('test', schema);
-  inspector(mongoose, 'test');
   return model;
 };

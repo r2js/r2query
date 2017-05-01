@@ -1,7 +1,7 @@
 {
   "name": "r2query",
   "description": "Mongoose plugin that converts api query parameters to mongodb queries",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "Selçuk Fatih Sevinç",
   "license": "MIT",
   "engines": {
@@ -19,10 +19,8 @@
     "eslint-plugin-jsx-a11y": "^4.0.0",
     "eslint-plugin-react": "^6.10.3",
     "mocha": "^3.2.0",
-    "r2api": "^1.0.1",
     "r2base": "^1.0.4",
-    "r2inspector": "^1.0.5",
-    "r2mongoose": "^1.0.0",
+    "r2mongoose": "^1.0.1",
     "supertest": "^3.0.0"
   },
   "main": "index.js",
