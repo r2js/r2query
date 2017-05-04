@@ -1,12 +1,48 @@
 const parse = require('api-query-params');
 const async = require('async');
 
+const parseQuery = (query) => {
+  const parsed = parse.default(query, {
+    casters: {
+      lowercase: val => val.toLowerCase(),
+      int: val => parseInt(val, 10),
+      starts: val => new RegExp(`^${val}`, 'i'),
+      ends: val => new RegExp(`${val}$`, 'i'),
+      contains: val => new RegExp(val, 'i'),
+    },
+  });
+
+  return parsed;
+};
+
+const parsePopulate = populateArr => (
+  populateArr.map((val) => {
+    if (!val.path) {
+      return val;
+    }
+
+    if (val.query) {
+      const query = parseQuery(val.query);
+      const { filter = {}, sort = {}, limit, skip = 0, projection = {} } = query;
+      Object.assign(val, {
+        path: val.path,
+        match: filter,
+        select: projection,
+        options: { sort, limit, skip },
+      }, { query: undefined });
+    }
+
+    if (val.populate) {
+      parsePopulate(val.populate);
+    }
+
+    return val;
+  })
+);
+
 const run = (query, model) => (
   new Promise((resolve, reject) => {
-    // TODO: populate uygulanacak
-    // TODO: mask uygulanacak
-
-    const parsed = parse.default(query);
+    const parsed = parseQuery(query);
     let Model = model;
 
     if (!parsed) {
@@ -14,12 +50,17 @@ const run = (query, model) => (
     }
 
     const notSupported = { type: 'notSupportedQueryType' };
-    const { filter = {}, sort, skip = 0, projection } = parsed;
-    const { qType } = filter;
-    let { limit = 10 } = parsed;
+    const { filter = {}, sort = {}, skip = 0, projection = {} } = parsed;
+    const { qType, populate } = filter;
+    let { populateQuery, limit = 10 } = parsed;
 
     if (qType) {
       delete filter.qType;
+    }
+
+    if (populate) {
+      populateQuery = parsePopulate(populate);
+      delete filter.populate;
     }
 
     // set maximum limit
@@ -51,6 +92,7 @@ const run = (query, model) => (
       if (skip) Model.skip(skip);
       if (limit) Model.limit(limit);
       if (projection) Model.select(projection);
+      if (populateQuery) Model.populate(populateQuery);
     }
 
     if (['all', 'one', 'total'].includes(qType)) {

@@ -17,10 +17,10 @@ const Test = app.service('model/test');
 
 before((done) => {
   Test.saveNew({ name: 'Project Title 1', slug: 'project-title-1' })
-    .then(() => Test.saveNew({ name: 'Project Title 2', slug: 'project-title-2' }))
-    .then(() => Test.saveNew({ name: 'Project Title 3', slug: 'project-title-3' }))
-    .then(() => Test.saveNew({ name: 'Project Title 4', slug: 'project-title-4' }))
-    .then(() => Test.saveNew({ name: 'Project Title 5', slug: 'project-title-5' }))
+    .then(data => Test.saveNew({ name: 'Project Title 2', slug: 'project-title-2', testRef1: data.id }))
+    .then(data => Test.saveNew({ name: 'Project Title 3', slug: 'project-title-3', testRef1: data.id }))
+    .then(data => Test.saveNew({ name: 'Project Title 4', slug: 'project-title-4', testRef1: data.id }))
+    .then(data => Test.saveNew({ name: 'Project Title 5', slug: 'project-title-5', testRef1: data.id }))
     .then(() => done())
     .catch(() => done());
 });
@@ -70,6 +70,52 @@ describe('r2query', () => {
       Test.apiQuery({ qType: 'total' })
         .then((data) => {
           expect(data).to.equal(5);
+          done();
+        })
+        .catch(done);
+    });
+  });
+
+  describe('operators', () => {
+    it('should query via caster, starts', (done) => {
+      Test.apiQuery({ qType: 'all', name: 'starts(project)' })
+        .then((data) => {
+          expect(data.length).to.equal(5);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should query via caster, ends', (done) => {
+      Test.apiQuery({ qType: 'all', name: 'ends(title 3)' })
+        .then((data) => {
+          expect(data.length).to.equal(1);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should query via caster, contains', (done) => {
+      Test.apiQuery({ qType: 'all', name: 'contains(title)' })
+        .then((data) => {
+          expect(data.length).to.equal(5);
+          done();
+        })
+        .catch(done);
+    });
+  });
+
+  describe('populate', () => {
+    it('should query via populate', (done) => {
+      Test.apiQuery({ qType: 'all', name: 'starts(project)', filter: '{"populate":[{"path":"testRef1","query":"fields=name,testRef1","populate":[{"path":"testRef1","query":"fields=name"}]}]}' })
+        .then((data) => {
+          expect(data.length).to.equal(5);
+          expect(data[2].name).to.equal('Project Title 3');
+          expect(data[2].slug).to.equal('project-title-3');
+          expect(data[2].testRef1.name).to.equal('Project Title 2');
+          expect(data[2].testRef1.slug).to.equal(undefined);
+          expect(data[2].testRef1.testRef1.name).to.equal('Project Title 1');
+          expect(data[2].testRef1.testRef1.slug).to.equal(undefined);
           done();
         })
         .catch(done);
