@@ -102,7 +102,7 @@ const run = (query, model) => (
     if (['allTotal'].includes(qType)) {
       const a = {
         rows: cb => Model.exec(cb),
-        total: cb => Model.count(filter, cb),
+        total: cb => model.count(filter, cb),
       };
 
       async.parallel(a, (err, results = {}) => {

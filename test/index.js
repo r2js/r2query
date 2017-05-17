@@ -103,6 +103,36 @@ describe('r2query', () => {
         })
         .catch(done);
     });
+
+    it('should respect limit operator', (done) => {
+      Test.apiQuery({ qType: 'allTotal', limit: 2 })
+        .then((data) => {
+          expect(data.rows.length).to.equal(2);
+          expect(data.total).to.equal(5);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should respect limit operator via skip', (done) => {
+      Test.apiQuery({ qType: 'allTotal', skip: 4, limit: 2 })
+        .then((data) => {
+          expect(data.rows.length).to.equal(1);
+          expect(data.total).to.equal(5);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should respect limit operator via other params', (done) => {
+      Test.apiQuery({ qType: 'allTotal', skip: 2, limit: 2, slug: 'project-title-1,project-title-2,project-title-3' })
+        .then((data) => {
+          expect(data.rows.length).to.equal(1);
+          expect(data.total).to.equal(3);
+          done();
+        })
+        .catch(done);
+    });
   });
 
   describe('populate', () => {
