@@ -28,9 +28,12 @@
   "keywords": [
     "r2js",
     "r2query",
+    "r2base",
+    "r2mongoose",
     "mongodb",
     "mongoose",
     "plugin",
+    "rest",
     "api",
     "query",
     "parameter"
