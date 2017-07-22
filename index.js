@@ -51,11 +51,15 @@ const run = (query, model) => (
 
     const notSupported = { type: 'notSupportedQueryType' };
     const { filter = {}, sort = {}, skip = 0, projection = {} } = parsed;
-    const { qType, populate } = filter;
+    const { qType, qName, populate } = filter;
     let { populateQuery, limit = 10 } = parsed;
 
     if (qType) {
       delete filter.qType;
+    }
+
+    if (qName) {
+      delete filter.qName;
     }
 
     if (populate) {
@@ -95,14 +99,18 @@ const run = (query, model) => (
       if (populateQuery) Model.populate(populateQuery);
     }
 
+    const qFunc = qName && typeof Model[qName] === 'function';
+    const qModel = (qFunc ? Model[qName](parsed) : Model);
+
     if (['all', 'one', 'total'].includes(qType)) {
-      return resolve(Model.exec());
+      return resolve(qModel.exec());
     }
 
     if (['allTotal'].includes(qType)) {
+      const qFind = model.find(filter);
       const a = {
-        rows: cb => Model.exec(cb),
-        total: cb => model.count(filter, cb),
+        rows: cb => qModel.exec(cb),
+        total: cb => (qFunc ? qFind[qName](parsed) : qFind).count().exec(cb),
       };
 
       async.parallel(a, (err, results = {}) => {

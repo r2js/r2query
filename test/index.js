@@ -6,21 +6,21 @@ const r2query = require('../index');
 const expect = chai.expect;
 process.chdir(__dirname);
 
-const app = r2base({ baseDir: __dirname });
+const app = r2base();
 app.start()
   .serve(r2query)
-  .serve(r2mongoose, { database: 'r2test' })
+  .serve(r2mongoose, { database: 'r2query' })
   .load('model')
   .into(app);
 
 const Test = app.service('model/test');
 
 before((done) => {
-  Test.saveNew({ name: 'Project Title 1', slug: 'project-title-1' })
-    .then(data => Test.saveNew({ name: 'Project Title 2', slug: 'project-title-2', testRef1: data.id }))
-    .then(data => Test.saveNew({ name: 'Project Title 3', slug: 'project-title-3', testRef1: data.id }))
-    .then(data => Test.saveNew({ name: 'Project Title 4', slug: 'project-title-4', testRef1: data.id }))
-    .then(data => Test.saveNew({ name: 'Project Title 5', slug: 'project-title-5', testRef1: data.id }))
+  Test.create({ name: 'Project Title 1', slug: 'project-title-1' })
+    .then(data => Test.create({ name: 'Project Title 2', slug: 'project-title-2', testRef1: data.id }))
+    .then(data => Test.create({ name: 'Project Title 3', slug: 'project-title-3', testRef1: data.id }))
+    .then(data => Test.create({ name: 'Project Title 4', slug: 'project-title-4', testRef1: data.id }))
+    .then(data => Test.create({ name: 'Project Title 5', slug: 'project-title-5', testRef1: data.id }))
     .then(() => done())
     .catch(() => done());
 });
@@ -146,6 +146,82 @@ describe('r2query', () => {
           expect(data[2].testRef1.slug).to.equal(undefined);
           expect(data[2].testRef1.testRef1.name).to.equal('Project Title 1');
           expect(data[2].testRef1.testRef1.slug).to.equal(undefined);
+          done();
+        })
+        .catch(done);
+    });
+  });
+
+  describe('override, qType=all', () => {
+    it('should not override via unknown query name', (done) => {
+      Test.apiQuery({ qType: 'all', qName: 'overrideUnknown' })
+        .then((data) => {
+          expect(data.length).to.equal(5);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should override limit and skip via query name', (done) => {
+      Test.apiQuery({ qType: 'all', qName: 'overrideLimitSkip' })
+        .then((data) => {
+          expect(data.length).to.equal(2);
+          expect(data[0].name).to.equal('Project Title 2');
+          expect(data[1].name).to.equal('Project Title 3');
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should override filter via query name', (done) => {
+      Test.apiQuery({ qType: 'all', qName: 'overrideFilter', name: 'Project Title 1' })
+        .then((data) => {
+          expect(data.length).to.equal(1);
+          expect(data[0].name).to.equal('Project Title 3');
+          done();
+        })
+        .catch(done);
+    });
+  });
+
+  describe('override, qType=one', () => {
+    it('should override filter via query name', (done) => {
+      Test.apiQuery({ qType: 'one', qName: 'overrideFilterOne', name: 'Project Title 1' })
+        .then((data) => {
+          expect(data.name).to.equal('Project Title 3');
+          done();
+        })
+        .catch(done);
+    });
+  });
+
+  describe('override, qType=total', () => {
+    it('should override filter via query name', (done) => {
+      Test.apiQuery({ qType: 'total', qName: 'overrideFilterTotal', name: 'Project Title 1' })
+        .then((data) => {
+          expect(data).to.equal(1);
+          done();
+        })
+        .catch(done);
+    });
+  });
+
+  describe('override, qType=allTotal', () => {
+    it('should override filter via query name', (done) => {
+      Test.apiQuery({ qType: 'allTotal', qName: 'overrideFilter' })
+        .then((data) => {
+          expect(data.rows[0].name).to.equal('Project Title 3');
+          expect(data.total).to.equal(1);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should override filter via query name and respect limit operator', (done) => {
+      Test.apiQuery({ qType: 'allTotal', limit: 1, qName: 'overrideFilterAllTotal' })
+        .then((data) => {
+          expect(data.rows[0].name).to.equal('Project Title 1');
+          expect(data.total).to.equal(3);
           done();
         })
         .catch(done);

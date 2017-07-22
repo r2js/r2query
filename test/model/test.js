@@ -39,6 +39,26 @@ module.exports = (app) => {
     testRef2: { type: ObjectId, ref: 'test' },
   });
 
+  schema.query.overrideLimitSkip = function(parsed) {
+    return this.skip(1).limit(2);
+  };
+
+  schema.query.overrideFilter = function(parsed) {
+    return this.find({ name: 'Project Title 3' });
+  };
+
+  schema.query.overrideFilterOne = function(parsed) {
+    return this.findOne({ name: 'Project Title 3' });
+  };
+
+  schema.query.overrideFilterTotal = function(parsed) {
+    return this.count({ name: 'Project Title 3' });
+  };
+
+  schema.query.overrideFilterAllTotal = function(parsed) {
+    return this.find({ slug: { $in: ['project-title-1', 'project-title-2', 'project-title-3'] } }).sort({ name: 1 });
+  };
+
   schema.plugin(query.plugin);
   const model = mongoose.model('test', schema);
   return model;
