@@ -1,14 +1,14 @@
 {
   "name": "r2query",
   "description": "Mongoose plugin that converts api query parameters to mongodb queries",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "author": "Selçuk Fatih Sevinç",
   "license": "MIT",
   "engines": {
     "node": ">=6.0.0"
   },
   "dependencies": {
-    "api-query-params": "^4.3.0",
+    "api-query-params": "^4.5.0",
     "async": "^2.3.0"
   },
   "devDependencies": {

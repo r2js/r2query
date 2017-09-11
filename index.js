@@ -2,7 +2,7 @@ const parse = require('api-query-params');
 const async = require('async');
 
 const parseQuery = (query) => {
-  const parsed = parse.default(query, {
+  const parsed = parse(query, {
     casters: {
       lowercase: val => val.toLowerCase(),
       int: val => parseInt(val, 10),
