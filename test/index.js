@@ -27,6 +27,20 @@ before((done) => {
 
 describe('r2query', () => {
   describe('type', () => {
+    it('should run query, default: all', (done) => {
+      Test.apiQuery({})
+        .then((data) => {
+          expect(data.length).to.equal(5);
+          expect(data[0].name).to.equal('Project Title 1');
+          expect(data[1].name).to.equal('Project Title 2');
+          expect(data[2].name).to.equal('Project Title 3');
+          expect(data[3].name).to.equal('Project Title 4');
+          expect(data[4].name).to.equal('Project Title 5');
+          done();
+        })
+        .catch(done);
+    });
+
     it('should run query, all', (done) => {
       Test.apiQuery({ qType: 'all' })
         .then((data) => {
@@ -222,6 +236,35 @@ describe('r2query', () => {
         .then((data) => {
           expect(data.rows[0].name).to.equal('Project Title 1');
           expect(data.total).to.equal(3);
+          done();
+        })
+        .catch(done);
+    });
+  });
+
+  describe('statics', () => {
+    it('should run statics function', (done) => {
+      Test.apiQuery({ qType: 'all', name: 'Project Title 2', qName: 'staticsTest' })
+        .then((data) => {
+          expect(data.name).to.equal('Project Title 5');
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should run statics function, return data object manually', (done) => {
+      Test.apiQuery({ qType: 'all', name: 'Project Title 2', qName: 'staticsTestData' })
+        .then((data) => {
+          expect(data).to.deep.equal({ a: 1 });
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should run statics function, override qName=allTotal as qName=all', (done) => {
+      Test.apiQuery({ qType: 'allTotal', name: 'Project Title 2', qName: 'staticsTest' })
+        .then((data) => {
+          expect(data.name).to.equal('Project Title 5');
           done();
         })
         .catch(done);

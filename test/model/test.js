@@ -59,6 +59,14 @@ module.exports = (app) => {
     return this.find({ slug: { $in: ['project-title-1', 'project-title-2', 'project-title-3'] } }).sort({ name: 1 });
   };
 
+  schema.statics.staticsTest = function(parsed) {
+    return this.findOne({ name: 'Project Title 5' });
+  };
+
+  schema.statics.staticsTestData = function(parsed) {
+    return { a: 1 };
+  };
+
   schema.plugin(query.plugin);
   const model = mongoose.model('test', schema);
   return model;

@@ -51,7 +51,8 @@ const run = (query, model) => (
 
     const notSupported = { type: 'notSupportedQueryType' };
     const { filter = {}, sort = {}, skip = 0, projection = {} } = parsed;
-    const { qType, qName, populate } = filter;
+    const { qName, populate } = filter;
+    let { qType = 'all' } = filter;
     let { populateQuery, limit = 10 } = parsed;
 
     if (qType) {
@@ -99,11 +100,20 @@ const run = (query, model) => (
       if (populateQuery) Model.populate(populateQuery);
     }
 
-    const qFunc = qName && typeof Model[qName] === 'function';
-    const qModel = (qFunc ? Model[qName](parsed) : Model);
+    const qFunc = qName && (typeof model[qName] === 'function' || typeof Model[qName] === 'function');
+    let qModel = Model;
+
+    // get statics or query function
+    if (qFunc) {
+      qModel = model[qName] ? model[qName](parsed) : Model[qName](parsed);
+      // override qName as 'all' for statics (because qFind[qName] could throw error)
+      if (model[qName]) {
+        qType = 'all';
+      }
+    }
 
     if (['all', 'one', 'total'].includes(qType)) {
-      return resolve(qModel.exec());
+      return resolve(qModel.exec ? qModel.exec() : qModel);
     }
 
     if (['allTotal'].includes(qType)) {
