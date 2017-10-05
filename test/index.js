@@ -14,6 +14,8 @@ app.start()
   .into(app);
 
 const Test = app.service('model/test');
+const Test2 = app.service('model/test2');
+const Query = app.service('Query');
 
 before((done) => {
   Test.create({ name: 'Project Title 1', slug: 'project-title-1' })
@@ -268,6 +270,124 @@ describe('r2query', () => {
           done();
         })
         .catch(done);
+    });
+  });
+
+  const queryOptions = {
+    type: 'object',
+    strict: true,
+    properties: {
+      filter: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', optional: true },
+        },
+      },
+      sort: {
+        type: 'object',
+        properties: {
+          createdAt: { type: 'number', eq: [-1], optional: true },
+        },
+      },
+      limit: { type: 'number', max: 100 },
+      skip: { type: 'number', max: 100 },
+      projection: {
+        type: 'object',
+        properties: {
+          name: { type: 'number', eq: 1, optional: true },
+          testRef1: { type: 'number', eq: 1, optional: true },
+        },
+      },
+      qType: { type: 'string', eq: ['all', 'allTotal'] },
+      qName: { type: 'string', eq: ['newMethod'], optional: true },
+    }
+  };
+
+  describe('inspector', () => {
+    it('should run schema inspector, return sanitized query', (done) => {
+      const filter = Query.parseAll({
+        qType: 'all',
+        qName: 'newMethod',
+        name: 'test',
+        sort: '-createdAt',
+        limit: 1000,
+        skip: 1000,
+        fields: 'name,testRef1',
+        filter: '{"populate":[{"path":"testRef1","query":"name=test&fields=name,testRef1"}]}',
+      }, queryOptions);
+
+      expect(filter).to.deep.equal({
+        filter: { name: 'test' },
+        sort: { createdAt: -1 },
+        limit: 100,
+        skip: 100,
+        projection: { name: 1, testRef1: 1 },
+        qType: 'all',
+        qName: 'newMethod',
+      });
+
+      done();
+    });
+
+    it('should run schema inspector, return validation error', (done) => {
+      const filter = Query.parseAll({
+        qType: 'count',
+        qName: 'testMethod',
+        age: 'test',
+        sort: 'createdAt',
+        limit: '1000',
+        skip: '1000',
+        fields: 'age',
+        filter: '{"populate":[{"path":"testRef1","query":"name=test&fields=name,testRef1"}]}',
+      }, queryOptions);
+
+      const { error: { type, message } } = filter;
+
+      expect(type).to.equal('queryValidationError');
+      expect(message[0].property).to.equal('@.sort.createdAt');
+      expect(message[0].message).to.equal('must be equal to ["-1"], but is equal to "1"');
+      expect(message[1].property).to.equal('@.qType');
+      expect(message[1].message).to.equal('must be equal to ["all" or "allTotal"], but is equal to "count"');
+      expect(message[2].property).to.equal('@.qName');
+      expect(message[2].message).to.equal('must be equal to ["newMethod"], but is equal to "testMethod"');
+
+      done();
+    });
+
+    it('should run query, default: all', (done) => {
+      Test2.apiQuery({})
+        .then((data) => {
+          expect(data).to.deep.equal([]);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should run query, return validation error', (done) => {
+      Test2.apiQuery({
+        qType: 'count',
+        qName: 'testMethod',
+        age: 'test',
+        sort: 'createdAt',
+        limit: '1000',
+        skip: '1000',
+        fields: 'age',
+        filter: '{"populate":[{"path":"testRef1","query":"name=test&fields=name,testRef1"}]}',
+      })
+        .then((data) => {
+          done();
+        })
+        .catch((err) => {
+          const { type, message } = err;
+          expect(type).to.equal('queryValidationError');
+          expect(message[0].property).to.equal('@.sort.createdAt');
+          expect(message[0].message).to.equal('must be equal to ["-1"], but is equal to "1"');
+          expect(message[1].property).to.equal('@.qType');
+          expect(message[1].message).to.equal('must be equal to ["all" or "allTotal"], but is equal to "count"');
+          expect(message[2].property).to.equal('@.qName');
+          expect(message[2].message).to.equal('must be equal to ["newMethod"], but is equal to "testMethod"');
+          done();
+        });
     });
   });
 });

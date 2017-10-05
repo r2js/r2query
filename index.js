@@ -1,4 +1,5 @@
 const parse = require('api-query-params');
+const inspector = require('schema-inspector');
 const async = require('async');
 
 const parseQuery = (query) => {
@@ -23,6 +24,10 @@ const parsePopulate = populateArr => (
 
     if (val.query) {
       const query = parseQuery(val.query);
+      if (!query) {
+        return val;
+      }
+
       const { filter = {}, sort = {}, limit, skip = 0, projection = {} } = query;
       Object.assign(val, {
         path: val.path,
@@ -40,32 +45,70 @@ const parsePopulate = populateArr => (
   })
 );
 
-const run = (query, model) => (
+const parseAll = (query, options) => {
+  const parsed = parseQuery(query);
+
+  if (!parsed) {
+    return false;
+  }
+
+  const { filter = {}, sort = {}, limit = 10, skip = 0, projection = {} } = parsed;
+  const { qType = 'all', qName, populate } = filter;
+  let { populateQuery } = parsed;
+
+  if (qType) {
+    delete filter.qType;
+  }
+
+  if (qName) {
+    delete filter.qName;
+  }
+
+  if (populate) {
+    populateQuery = parsePopulate(populate);
+    delete filter.populate;
+  }
+
+  let response = {
+    filter,
+    sort,
+    limit,
+    skip,
+    projection,
+    qType,
+    qName,
+    populate: populateQuery,
+    error: null,
+  };
+
+  if (options) {
+    const sanitized = inspector.sanitize(options, response);
+    response = sanitized.data;
+    const { error, valid } = inspector.validate(options, sanitized.data);
+
+    if (!valid) {
+      return { error: { type: 'queryValidationError', message: error } };
+    }
+  }
+
+  return response;
+};
+
+const run = (query, model, options) => (
   new Promise((resolve, reject) => {
-    const parsed = parseQuery(query);
-    let Model = model;
+    const parsed = parseAll(query, options);
 
     if (!parsed) {
       return reject({ type: 'queryParserError' });
     }
 
+    let Model = model;
     const notSupported = { type: 'notSupportedQueryType' };
-    const { filter = {}, sort = {}, skip = 0, projection = {} } = parsed;
-    const { qName, populate } = filter;
-    let { qType = 'all' } = filter;
-    let { populateQuery, limit = 10 } = parsed;
+    const { filter, sort, skip, projection, qName, populate, error } = parsed;
+    let { limit, qType } = parsed;
 
-    if (qType) {
-      delete filter.qType;
-    }
-
-    if (qName) {
-      delete filter.qName;
-    }
-
-    if (populate) {
-      populateQuery = parsePopulate(populate);
-      delete filter.populate;
+    if (error) {
+      return reject(error);
     }
 
     // set maximum limit
@@ -97,7 +140,7 @@ const run = (query, model) => (
       if (skip) Model.skip(skip);
       if (limit) Model.limit(limit);
       if (projection) Model.select(projection);
-      if (populateQuery) Model.populate(populateQuery);
+      if (populate) Model.populate(populate);
     }
 
     const qFunc = qName && (typeof model[qName] === 'function' || typeof Model[qName] === 'function');
@@ -135,10 +178,12 @@ const run = (query, model) => (
 
 module.exports = function Query() {
   return {
-    plugin(schema) {
+    plugin(schema, options) {
       schema.statics.apiQuery = function (query) { // eslint-disable-line
-        return run(query, this);
+        return run(query, this, options);
       };
     },
+
+    parseAll,
   };
 };
