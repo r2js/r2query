@@ -9,11 +9,11 @@ const run = (query = {}, model, options = {}) => (
     let { limit = 10 } = options;
 
     if (qType) {
-      Object.assign(query, { qType: undefined });
+      delete query.qType;
     }
 
     if (qName) {
-      Object.assign(query, { qName: undefined });
+      delete query.qName;
     }
 
     // set maximum limit

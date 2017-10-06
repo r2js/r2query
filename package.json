@@ -1,7 +1,7 @@
 {
   "name": "r2query",
   "description": "Mongoose api query plugin",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "author": "Selçuk Fatih Sevinç",
   "license": "MIT",
   "engines": {
