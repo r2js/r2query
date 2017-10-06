@@ -1,114 +1,19 @@
-const parse = require('api-query-params');
-const inspector = require('schema-inspector');
 const async = require('async');
 
-const parseQuery = (query) => {
-  const parsed = parse(query, {
-    casters: {
-      lowercase: val => val.toLowerCase(),
-      int: val => parseInt(val, 10),
-      starts: val => new RegExp(`^${val}`, 'i'),
-      ends: val => new RegExp(`${val}$`, 'i'),
-      contains: val => new RegExp(val, 'i'),
-    },
-  });
-
-  return parsed;
-};
-
-const parsePopulate = populateArr => (
-  populateArr.map((val) => {
-    if (!val.path) {
-      return val;
-    }
-
-    if (val.query) {
-      const query = parseQuery(val.query);
-      if (!query) {
-        return val;
-      }
-
-      const { filter = {}, sort = {}, limit, skip = 0, projection = {} } = query;
-      Object.assign(val, {
-        path: val.path,
-        match: filter,
-        select: projection,
-        options: { sort, limit, skip },
-      }, { query: undefined });
-    }
-
-    if (val.populate) {
-      parsePopulate(val.populate);
-    }
-
-    return val;
-  })
-);
-
-const parseAll = (query, options) => {
-  const parsed = parseQuery(query);
-
-  if (!parsed) {
-    return false;
-  }
-
-  const { filter = {}, sort = {}, limit = 10, skip = 0, projection = {} } = parsed;
-  const { qType = 'all', qName, populate } = filter;
-  let { populateQuery } = parsed;
-
-  if (qType) {
-    delete filter.qType;
-  }
-
-  if (qName) {
-    delete filter.qName;
-  }
-
-  if (populate) {
-    populateQuery = parsePopulate(populate);
-    delete filter.populate;
-  }
-
-  let response = {
-    filter,
-    sort,
-    limit,
-    skip,
-    projection,
-    qType,
-    qName,
-    populate: populateQuery,
-    error: null,
-  };
-
-  if (options) {
-    const sanitized = inspector.sanitize(options, response);
-    response = sanitized.data;
-    const { error, valid } = inspector.validate(options, sanitized.data);
-
-    if (!valid) {
-      return { error: { type: 'queryValidationError', message: error } };
-    }
-  }
-
-  return response;
-};
-
-const run = (query, model, options) => (
+const run = (query = {}, model, options = {}) => (
   new Promise((resolve, reject) => {
-    const parsed = parseAll(query, options);
+    let Model = model;
+    const { sort, skip = 0, fields, populate } = options;
+    const { qName } = query;
+    let { qType = 'all' } = query;
+    let { limit = 10 } = options;
 
-    if (!parsed) {
-      return reject({ type: 'queryParserError' });
+    if (qType) {
+      Object.assign(query, { qType: undefined });
     }
 
-    let Model = model;
-    const notSupported = { type: 'notSupportedQueryType' };
-    const { filter, sort, skip, projection, qName, populate, error } = parsed;
-    let { limit, qType } = parsed;
-
-    if (error) {
-      return reject(error);
+    if (qName) {
+      Object.assign(query, { qName: undefined });
     }
 
     // set maximum limit
@@ -120,26 +25,26 @@ const run = (query, model, options) => (
     switch (qType) {
       case 'all':
       case 'allTotal':
-        Model = Model.find(filter);
+        Model = Model.find(query);
         break;
 
       case 'one':
-        Model = Model.findOne(filter);
+        Model = Model.findOne(query);
         break;
 
       case 'total':
-        Model = Model.count(filter);
+        Model = Model.count(query);
         break;
 
       default:
-        return reject(notSupported);
+        return reject({ type: 'notSupportedQueryType' });
     }
 
     if (['all', 'allTotal', 'one'].includes(qType)) {
       if (sort) Model.sort(sort);
       if (skip) Model.skip(skip);
       if (limit) Model.limit(limit);
-      if (projection) Model.select(projection);
+      if (fields) Model.select(fields);
       if (populate) Model.populate(populate);
     }
 
@@ -148,7 +53,7 @@ const run = (query, model, options) => (
 
     // get statics or query function
     if (qFunc) {
-      qModel = model[qName] ? model[qName](parsed) : Model[qName](parsed);
+      qModel = model[qName] ? model[qName](query, options) : Model[qName](query, options);
       // override qName as 'all' for statics (because qFind[qName] could throw error)
       if (model[qName]) {
         qType = 'all';
@@ -160,10 +65,10 @@ const run = (query, model, options) => (
     }
 
     if (['allTotal'].includes(qType)) {
-      const qFind = model.find(filter);
+      const qFind = model.find(query);
       const a = {
         rows: cb => qModel.exec(cb),
-        total: cb => (qFunc ? qFind[qName](parsed) : qFind).count().exec(cb),
+        total: cb => (qFunc ? qFind[qName](query, options) : qFind).count().exec(cb),
       };
 
       async.parallel(a, (err, results = {}) => {
@@ -178,12 +83,10 @@ const run = (query, model, options) => (
 
 module.exports = function Query() {
   return {
-    plugin(schema, options) {
-      schema.statics.apiQuery = function (query) { // eslint-disable-line
+    plugin(schema) {
+      schema.statics.apiQuery = function (query, options) { // eslint-disable-line
         return run(query, this, options);
       };
     },
-
-    parseAll,
   };
 };
