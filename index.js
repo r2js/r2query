@@ -7,6 +7,7 @@ const run = (query = {}, model, options = {}) => (
     const { qName } = query;
     let { qType = 'all' } = query;
     let { limit = 10 } = options;
+    let treeFunc;
 
     if (qType) {
       delete query.qType;
@@ -36,8 +37,31 @@ const run = (query = {}, model, options = {}) => (
         Model = Model.count(query);
         break;
 
+      case 'tree':
+        treeFunc = 'GetTree';
+        break;
+
+      case 'arrayTree':
+        treeFunc = 'GetArrayTree';
+        break;
+
       default:
         return reject({ type: 'notSupportedQueryType' });
+    }
+
+    if (['tree', 'arrayTree'].includes(qType)) {
+      if (!Model[treeFunc]) {
+        return reject({ type: 'notSupportedTreeModel' });
+      }
+
+      const childOpts = query.childOpts || {};
+      if (query.childOpts) {
+        delete query.childOpts;
+      }
+
+      return Model[treeFunc](query, childOpts, (err, tree) => {
+        resolve(tree);
+      });
     }
 
     if (['all', 'allTotal', 'one'].includes(qType)) {

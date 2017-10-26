@@ -2,6 +2,7 @@ const chai = require('chai');
 const r2base = require('r2base');
 const r2mongoose = require('r2mongoose');
 const r2query = require('../index');
+const testData = require('./data');
 
 const expect = chai.expect;
 process.chdir(__dirname);
@@ -14,14 +15,17 @@ app.start()
   .into(app);
 
 const Test = app.service('model/test');
+const Category = app.service('model/category');
 const Query = app.service('Query');
 
 before((done) => {
+  app.service('Mongoose').set('debug', false);
   Test.create({ name: 'Project Title 1', slug: 'project-title-1' })
     .then(data => Test.create({ name: 'Project Title 2', slug: 'project-title-2', testRef: data.id }))
     .then(data => Test.create({ name: 'Project Title 3', slug: 'project-title-3', testRef: data.id }))
     .then(data => Test.create({ name: 'Project Title 4', slug: 'project-title-4', testRef: data.id }))
     .then(data => Test.create({ name: 'Project Title 5', slug: 'project-title-5', testRef: data.id }))
+    .then(() => testData(app))
     .then(() => done())
     .catch(() => done());
 });
@@ -85,6 +89,38 @@ describe('r2query', () => {
       Test.apiQuery({ qType: 'total' })
         .then((data) => {
           expect(data).to.equal(5);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should run query, tree', (done) => {
+      Category.apiQuery({
+        _id: global.cat2.id,
+        childOpts: { condition: { name: 'Category 2.1' } },
+        qType: 'tree',
+      })
+        .then((data) => {
+          const cat2 = global.cat2;
+          expect(data[cat2.id]).to.not.equal(undefined);
+          expect(data[cat2.id].name).to.equal('Category 2');
+          expect(Object.keys(data[cat2.id].children).length).to.equal(1);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should run query, arrayTree', (done) => {
+      Category.apiQuery({
+        _id: global.cat2.id,
+        childOpts: { condition: { name: 'Category 2.1' } },
+        qType: 'arrayTree',
+      })
+        .then((data) => {
+          const cat2 = global.cat2;
+          expect(data.length).to.equal(1);
+          expect(data[0].name).to.equal('Category 2');
+          expect(data[0].children.length).to.equal(1);
           done();
         })
         .catch(done);
