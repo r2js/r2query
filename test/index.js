@@ -125,6 +125,20 @@ describe('r2query', () => {
         })
         .catch(done);
     });
+
+    it('should run query, fullArrayTree', (done) => {
+      Category.apiQuery({ qType: 'fullArrayTree' })
+        .then((data) => {
+          expect(data[0].name).to.equal('Category 1');
+          expect(data[0].children.length).to.equal(3);
+          expect(data[1].name).to.equal('Category 2');
+          expect(data[1].children.length).to.equal(3);
+          expect(data[2].name).to.equal('Category 3');
+          expect(data[2].children.length).to.equal(3);
+          done();
+        })
+        .catch(done);
+    });
   });
 
   describe('options', () => {

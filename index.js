@@ -45,6 +45,10 @@ const run = (query = {}, model, options = {}) => (
         treeFunc = 'GetArrayTree';
         break;
 
+      case 'fullArrayTree':
+        treeFunc = 'GetFullArrayTree';
+        break;
+
       default:
         return reject({ type: 'notSupportedQueryType' });
     }
@@ -62,6 +66,14 @@ const run = (query = {}, model, options = {}) => (
       return Model[treeFunc](query, childOpts, (err, tree) => {
         resolve(tree);
       });
+    }
+
+    if (['fullArrayTree'].includes(qType)) {
+      if (!Model[treeFunc]) {
+        return reject({ type: 'notSupportedTreeModel' });
+      }
+
+      return Model[treeFunc]((err, tree) => resolve(tree));
     }
 
     if (['all', 'allTotal', 'one'].includes(qType)) {
